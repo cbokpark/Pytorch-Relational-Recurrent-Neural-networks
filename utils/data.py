@@ -5,7 +5,7 @@ import random
 import numpy as np
 
 from typing import List
-
+import pdb
 
 
 class Vocabulary(object):
@@ -108,18 +108,20 @@ class UnicodeCharsVocabulary(Vocabulary):
         super(UnicodeCharsVocabulary, self).__init__(filename, **kwargs)
         self._max_word_length = max_word_length
 
-        self._char_to_idx = {}
-        self._idx_to_char = []
+        self._char_to_idx = {'<bos_char>':0,'<eos_char>':1,'<bow_char>':2,'<eow_char>':3,'<pad_char>':4,'unk_char':5}
+        self._idx_to_char = ['<bos_char>','<eos_char>','<bow_char>','<eow_char>','<pad_char>','unk_char']
     # modify charcter dictonary setting 
         self.bos_char = 0 # <begin sentence>
         self.eos_char = 1  # <end sentence>
         self.bow_char = 2  # <begin word>
         self.eow_char = 3  # <end word>
         self.pad_char = 4 # <padding>
+        self.unk_char = 5
+        num_words = len(self._id_to_word)
         self._word_char_ids = np.zeros([num_words, max_word_length],
             dtype=np.int32)
-         for i, word in enumerate(self._id_to_word):
-            idx = 5
+        for i, word in enumerate(self._id_to_word):
+            idx = 6
             for char in list(word):
                 if char not in self._idx_to_char:
                     self._idx_to_char.append(char)
@@ -127,7 +129,7 @@ class UnicodeCharsVocabulary(Vocabulary):
                     idx += 1
             self._word_char_ids[i] = self._convert_word_to_char_ids(word)
         # modify end 
-        num_words = len(self._id_to_word)
+       
 
         # the charcter representation of the begin/end of sentence characters
         def _make_bos_eos(c):
@@ -170,7 +172,10 @@ class UnicodeCharsVocabulary(Vocabulary):
         code[0] = self.bow_char
         for k, char in enumerate(word_encoded, start=1):
             # issuse outof word problems 
-            code[k] = self._char_to_idx[char]
+            if char in self._idx_to_char:
+                code[k] = self._char_to_idx[char]
+            else:
+                code[k] = self.unk_char
         code[k + 1] = self.eow_char
         return code
 
@@ -457,6 +462,23 @@ class BidirectionalLMDataset(object):
             ):
 
             for k, v in Xr.items():
-                X[k + '_reverse'] = v
+                X[k + '_reverse'] = v # append key_name + '_reverse'!
 
             yield X
+
+
+
+def load_vocab(vocab_file, max_word_length=None):
+    """
+    data = BidirectionalLMDataset(prefix, vocab, test=False,
+                                      shuffle_on_load=True)
+
+    data_gen = data.iter_batches(batch_size * n_gpus, unroll_steps = 20)
+    """
+    if max_word_length:
+        return UnicodeCharsVocabulary(vocab_file, max_word_length,
+                                      validate_file=True)
+
+    else:
+        return Vocabulary(vocab_file, validate_file=True)
+
