@@ -1,27 +1,33 @@
 
-
 import torch 
-import torch.nn 
+import torch.nn as nn
 import torch.nn.functional as F 
-from .sublayer import mlp_layer 
-
+from .sub_layers import mlp_layers 
+import numpy as np
 
 
 class Attention_layer(nn.Module):
 	def __init__(self,head_size,num_head,num_blocks,attention_mlp_layers,dropout_p= 0.1):
-		
+		super(Attention_layer,self).__init__()
 		self.head_size = head_size
 		self.num_head = num_head
+		self.num_blocks = num_blocks
 		self.attention_mlp_layers = attention_mlp_layers
 		self.dropout = nn.Dropout(p=dropout_p)
 		for i in range(num_blocks):
-			setattr(self,'attention_block_{}'.format(i),Attention_block(self.head_size*self.num_head,self.head_size*self.num_head,self.num_head,dropout_p=0.2))
-			setattr(self,'mlp_{}'.format(i),mlp_layer(self.head_size*self.num_head,attention_mlp_layers))
-			setattr(self,'layer_norm_0_{}'.fomrat(i),nn.LayerNorm(head_size))
-			setattr(self,'layer_norm_1_{}'.fomrat(i),nn.LayerNorm(head_size))
+			setattr(self,'attention_block_{}'.format(i),Attention_block(self.head_size*self.num_head,self.head_size*self.num_head,self.num_head,dropout_p=dropout_p))
+			setattr(self,'mlp_{}'.format(i),mlp_layers(self.head_size*self.num_head,attention_mlp_layers,dropout_p))
+			setattr(self,'layer_norm_0_{}'.format(i),nn.LayerNorm(self.head_size*self.num_head))
+			setattr(self,'layer_norm_1_{}'.format(i),nn.LayerNorm(self.head_size*self.num_head))
 			
 	def forward(self,inputs):
-
+		"""
+		args:
+			inputs: B * memslots+1 * mem_size 
+		returns:
+			outputs: B* mem_slots+1 * mem_size 
+			
+		"""
 		attention_maps = []
 		
 		for i in range(self.num_blocks):
@@ -29,15 +35,15 @@ class Attention_layer(nn.Module):
 			new_memory,attention_map = layer(inputs,inputs,inputs)
 			attention_maps.append(attention_map)
 			
-			layer_norm = getattr(self,'layer_norm_0_{}'.fomrat(i))
+			layer_norm = getattr(self,'layer_norm_0_{}'.format(i))
 			new_memory = layer_norm(inputs + new_memory)
 			
 			new_memory=self.dropout(new_memory)
 			
 			mlplayer = getattr(self,'mlp_{}'.format(i))
-			layer_norm = getattr(self,'layer_norm_1_{}'.fomrat(i))
+			layer_norm = getattr(self,'layer_norm_1_{}'.format(i))
 			
-			inputs  = layer_norm(new_memory+new_memory(mlp))
+			inputs  = layer_norm(new_memory+ mlplayer(new_memory))
 		outputs = inputs
 		return (outputs,attention_maps)
 
@@ -64,8 +70,7 @@ class Attention_block(nn.Module):
 		nn.init.xavier_normal(self.Wq)
 		nn.init.xavier_normal(self.Wk)
 		nn.init.xavier_normal(self.Wv)
-		nn.init.xavier_normal(self.linear.linear.weight)
-
+		
 	def forward(self,q,k,v, mask =None):
 		"""
 		Attention block 

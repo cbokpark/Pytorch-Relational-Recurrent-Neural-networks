@@ -1,8 +1,9 @@
 import torch
-import torch.nn 
-
+import torch.nn as nn
+import pdb 
 class mlp_layers(nn.Module):
 	def __init__(self,input_dims,num_layer,dropout=0.1, internal_dims=None,output_dims = None,conv_mode = None):
+		super(mlp_layers,self).__init__()
 		self.input_dims = input_dims
 		self.dropout = dropout
 		layer_list = []
@@ -18,7 +19,24 @@ class mlp_layers(nn.Module):
 			layer_list.append(nn.ReLU())
 			if dropout >0 :
 				layer_list.append(nn.Dropout(p=dropout))
-			layer_list = internal_dims
+			input_dims = internal_dims
 		self.mlp_layer = nn.Sequential(*layer_list)
 	def forward(self,x):
 		return (self.mlp_layer(x))
+
+class Highway_layer(nn.Module):
+	def __init__(self,input_size,activation='ReLU'):
+
+		super(Highway_layer,self).__init__()
+		self.transform_gate = nn.Sequential(nn.Linear(input_size,input_size),nn.Sigmoid())
+		activation_layer = getattr(nn,activation)()
+		self.h_layer = nn.Sequential(nn.Linear(input_size,input_size),activation_layer)
+		#init_model
+	def init_model(self):
+		raise NotImplementedError
+		
+	def forward(self,x):
+		tf_gate_out = self.transform_gate(x)
+		out = self.h_layer(x)*(tf_gate_out) + (1-tf_gate_out)*x
+		return out
+		
