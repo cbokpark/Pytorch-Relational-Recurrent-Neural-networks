@@ -56,6 +56,7 @@ class Trainer:
 		for epoch in range(self.start_epoch,self.epoch):
 			result = self._train_epoch(epoch)
 
+
 	def _train_epoch(self,epoch):
 		self._train_mode()
 		train_loss = 0 
@@ -80,7 +81,8 @@ class Trainer:
 				self._summary_writer()
 				# add perpelxtiy value
 				train_loss =0 
-			
+			if (self.total_iteration+1)%10000 == 0 :
+				self.save_model()
 			self.total_iteration +=1
 
 
