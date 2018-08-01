@@ -3,7 +3,7 @@ import glob
 import random
 
 import numpy as np
-
+import torch 
 from typing import List
 import pdb
 
@@ -129,7 +129,6 @@ class UnicodeCharsVocabulary(Vocabulary):
                     idx += 1
             self._word_char_ids[i] = self._convert_word_to_char_ids(word)
         # modify end 
-       
 
         # the charcter representation of the begin/end of sentence characters
         def _make_bos_eos(c):
@@ -317,11 +316,11 @@ def _get_batch(generator, batch_size, num_steps, max_word_length):
             # for the incomplete batch
             break
 
-        X = {'token_ids': inputs, 'tokens_characters': char_inputs,
-                 'next_token_id': targets}
+        X = {'token_ids': torch.from_numpy(inputs).long(), 'tokens_characters': torch.from_numpy(char_inputs).long(),
+                 'next_token_id': torch.from_numpy(targets).long()}
 
         yield X
-
+        
 class LMDataset(object):
     """
     Hold a language model dataset.
