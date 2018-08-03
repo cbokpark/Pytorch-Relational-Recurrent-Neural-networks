@@ -75,10 +75,10 @@ class Trainer:
 			loss.backward()
 			torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.clip_grad)
 			self.optimizer.step()
-			train_loss += loss.item()*unroll_step
+			train_loss += loss.item()*self.unroll_step
 			if (self.total_iteration+1)%1000 == 0 :
 				print ("[+] iteration :{} , avg_loss :{} , perpelxtiy: {:8.2f}".format(self.total_iteration,train_loss/1000,math.exp(train_loss/1000)))
-				self._summary_writer()
+				self._summary_write()
 				# add perpelxtiy value
 				train_loss =0 
 			if (self.total_iteration+1)%10000 == 0 :
@@ -102,10 +102,10 @@ class Trainer:
 		torch.save(self,self.embedding.satedict(),'./save_model/'+self.name+'_'+str(self.total_iteration)+'cnn.path.tar')
 		torch.save(self,self.projection_layer.satedict(),'./save_model/'+self.name+'_'+str(self.total_iteration)+'projection.path.tar')
 	def _summary_write(self,loss):
-		self.summary_writer.add_scalar('data/loss',loss,self.iteration)
+		self.summary_writer.add_scalar('data/loss',loss,self.total_iteration)
 		for name,param in self.model.named_parameters():
-			self.summary_writer.add_histogram(name, param.clone().cpu().data.numpy(), epoch,bins='sturges')
-			self.tensorboad_writer.add_histogram(name+'/grad', param.grad.clone().cpu().data.numpy(), epoch,bins='sturges')
+			self.summary_writer.add_histogram(name, param.clone().cpu().data.numpy(), self.total_iteration,bins='sturges')
+			self.summary_writer.add_histogram(name+'/grad', param.grad.clone().cpu().data.numpy(),self.total_iteration,bins='sturges')
 
 	def _eval_metric(self,output,target):
 		raise NotImplementedError
