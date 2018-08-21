@@ -64,12 +64,14 @@ class Attention_block(nn.Module):
 		self.Wv = nn.Parameter(torch.FloatTensor(self.n_heads,self.value_dim,int(self.value_dim/self.n_heads)))
 		self.sc_dot_product_attentions = scaled_dot_product_attention(self.value_dim/self.n_heads,self.value_dim/self.n_heads,self.dropout_p)
 		self.init_parameters()
-
+		self.q_layer_norm  	= nn.LayerNorm(int(self.value_dim/self.n_heads))
+		self.k_layer_norm	= nn.LayerNorm(int(self.value_dim/self.n_heads))
+		self.v_layer_norm	= nn.LayerNorm(int(self.value_dim/self.n_heads)) 
 	def init_parameters(self):
 
-		nn.init.xavier_normal(self.Wq)
-		nn.init.xavier_normal(self.Wk)
-		nn.init.xavier_normal(self.Wv)
+		nn.init.orthogonal_(self.Wq)
+		nn.init.orthogonal_(self.Wk)
+		nn.init.orthogonal_(self.Wv)
 		
 	def forward(self,q,k,v, mask =None):
 		"""
@@ -100,7 +102,7 @@ class Attention_block(nn.Module):
 		v_pj = torch.bmm(v_pj,self.Wv).view(-1,v_length,int(self.value_dim/self.n_heads))
 
 		# sclaed dot product
-		outputs,attention =self.sc_dot_product_attentions(q_pj,k_pj,v_pj,mask) # H*B X L X d-v
+		outputs,attention =self.sc_dot_product_attentions(self.q_layer_norm(q_pj),self.k_layer_norm(k_pj),self.v_layer_norm(v_pj),mask) # H*B X L X d-v
 		out = torch.cat(torch.split(outputs,batch_size,dim= 0),dim =-1) # B X L X d_model	
 		
 		
@@ -138,7 +140,7 @@ class scaled_dot_product_attention(nn.Module):
 			# fill -inf vlaue no attention 
 			attention.data.masked_fill_(mask,-1e9)
 
-		attention = self.attention_dropout(F.softmax(attention,dim=2))
-		out = torch.bmm(attention,v) #Calculate bmm B X Q_L X K_L and ( K_L X v_dim ) -> B X Q_L *V_dim 
+		#attention = self.attention_dropout(F.softmax(attention,dim=2))
+		out = self.attention_dropout(torch.bmm(attention,v)) #Calculate bmm B X Q_L X K_L and ( K_L X v_dim ) -> B X Q_L *V_dim 
 
 		return out,attention

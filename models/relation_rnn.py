@@ -14,6 +14,7 @@ class RelationalRNN(nn.Module):
 		self.input_size = input_size
 		self.mem_size  = head_size * num_heads
 		self.num_units = self.mem_size * self.mem_slots
+
 		#self.input_bias = input_bias
 		#self.forget_bias = forget_bias
 		
@@ -47,7 +48,7 @@ class RelationalRNN(nn.Module):
 			self.gate_weight = nn.Parameter(torch.randn(2*self.mem_size,2*self.mem_size))
 			self.gate_bias = nn.Parameter(torch.ones(1,2*self.mem_size))
 
-
+		self.dropout = nn.Dropout(dropout_p)
 	def get_inital_memory(self,inputs):
 		replace_eye = inputs.new_zeros(self.mem_slots,self.mem_size)
 		nn.init.eye_(replace_eye)
@@ -60,7 +61,7 @@ class RelationalRNN(nn.Module):
 			memory : Batch * mem_slots *mem_size  
 		returns :
 		"""
-
+		inputs  = self.dropout(inputs)
 		if memory is None:
 			memory = self.get_inital_memory(inputs)
 		
@@ -116,6 +117,7 @@ class RelationalRNN_module(nn.Module):
 			total_attention_maps.append(attention_maps)
 			total_outputs.append(output.unsqueeze(0))
 		outputs = torch.cat(total_outputs).permute(1,0,2)
+		
 		if batch_size != outputs.size(0):
 			print ("[+] error raise")
 		return outputs,memory,total_attention_maps

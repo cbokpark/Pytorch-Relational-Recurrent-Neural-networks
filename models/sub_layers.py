@@ -16,6 +16,7 @@ class mlp_layers(nn.Module):
 			if i == num_layer-1:
 				internal_dims = output_dims	
 			layer_list.append(nn.Linear(input_dims,internal_dims))
+			layer_list.append(nn.Dropout(dropout))
 			layer_list.append(nn.ReLU())
 			if dropout >0 :
 				layer_list.append(nn.Dropout(p=dropout))
@@ -40,3 +41,12 @@ class Highway_layer(nn.Module):
 		out = self.h_layer(x)*(tf_gate_out) + (1-tf_gate_out)*x
 		return out
 		
+class Generator(nn.Module):
+	def __init__(self,input_dims,projection_dims,output_dims,dropout_p =0.5):
+		super(Generator,self).__init__()
+		self.projection_layer = nn.Sequential(nn.Linear(input_dims,projection_dims),
+								nn.Dropout(dropout_p),
+								nn.Linear(projection_dims,output_dims))
+
+	def forward(self,x):
+		return self.projection_layer(x)
